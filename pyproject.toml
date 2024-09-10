@@ -6,6 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "example_project"
 version = "0.1.0"
 description = "An example Python project"
+readme = "README.md"
+requires-python = ">=3.6"
+
 dependencies = [
     "requests>=2.25.1",
     "numpy>=1.21.0",
@@ -147,8 +150,9 @@ dependencies = [
     "yq==3.2.3",
     "zipp==3.17.0"
 ]
-dynamic = ["readme", "requires-python", "optional-dependencies"]
 
-[tool.setuptools]
-packages = ["tts_models"]
-package_dir = {"": "src"}
+[project.optional-dependencies]
+testing = ["pytest", "coverage"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
