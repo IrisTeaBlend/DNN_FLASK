@@ -147,6 +147,7 @@ dependencies = [
     "yq==3.2.3",
     "zipp==3.17.0"
 ]
+dynamic = ["readme", "requires-python", "optional-dependencies"]
 
 [tool.setuptools]
 packages = ["tts_models"]
