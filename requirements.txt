@@ -17,4 +17,7 @@ pysptk==0.2.2
 parallel-wavegan==0.6.1
 librosa==0.10.1
 setuptools>=42
-wheel
+fastapi==0.103.1
+ipython==8.17.2
+librosa==0.10.1
+matplotlib==3.8.1
