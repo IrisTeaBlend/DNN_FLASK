@@ -1,51 +1,43 @@
-from flask import Flask, render_template, request, send_file, abort
+from fastapi import FastAPI, Form, Request, HTTPException
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import StreamingResponse
+from pathlib import Path
 import os
-import ttslearn
-from ttslearn.dnntts import DNNTTS
 import wave
-import io
+from ttslearn.dnntts import DNNTTS
 
-app = Flask(__name__)
+app = FastAPI()
 
-# 継続長モデルの設定ファイル名
-duration_config_name = "duration_dnn"
-# 音響モデルの設定ファイル名
-acoustic_config_name = "acoustic_dnn_sr16k"
+# テンプレートと静的ファイルの設定
+BASE_DIR = Path(__file__).resolve().parent  # 現在のファイルのディレクトリ
+templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
-# パッケージングしたモデルのパスを指定します
-model_dir = f"C:/kikagaku/tts_models/jsut_sr16000_{duration_config_name}_{acoustic_config_name}"
+# モデルディレクトリの相対パス
+model_dir = BASE_DIR / "tts_models/jsut_sr16000_duration_dnn_acoustic_dnn_sr16k"
 engine = DNNTTS(model_dir)
 
 # ファイルを保存するディレクトリ
-upload_dir = "./uploads"
+upload_dir = BASE_DIR / "uploads"
 os.makedirs(upload_dir, exist_ok=True)
 
-@app.route("/", methods=["GET"])
-def index():
-    return render_template("index.html")
+@app.get("/")
+async def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
-@app.route("/synthesize/", methods=["POST"])
-def synthesize_text():
-    text = request.form.get("text")
+@app.post("/synthesize/")
+async def synthesize_text(request: Request, text: str = Form(...)):
     if text:
-        # テキストを音声に変換
         wav, sr = engine.tts(text)
 
-        # 音声データをバイトストリームに保存
-        output_io = io.BytesIO()
-        with wave.open(output_io, 'wb') as wf:
+        # 音声ファイルを一時的に保存
+        output_path = upload_dir / "output.wav"
+        with wave.open(output_path, 'wb') as wf:
             wf.setnchannels(1)
-            wf.setsampwidth(2)  # 16-bit PCM
+            wf.setsampwidth(2)
             wf.setframerate(sr)
             wf.writeframes(wav.tobytes())
 
-        # バイトストリームのポインタを先頭に戻す
-        output_io.seek(0)
+        # 保存した音声ファイルをストリーム化してレスポンスとして返す
+        return StreamingResponse(open(output_path, "rb"), media_type="audio/wav")
 
-        # ストリームレスポンスを返す
-        return send_file(output_io, as_attachment=True, download_name="output.wav", mimetype="audio/wav")
-
-    abort(400, description="テキストが提供されていません")
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    raise HTTPException(status_code=400, detail="テキストが提供されていません")
